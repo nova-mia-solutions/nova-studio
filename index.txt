@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>NOVA — AI Studio</title>
+<meta name="description" content="NOVA AI Studio — Autonomous AI project assistant"/>
+<meta name="theme-color" content="#6366f1"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#0d1117;color:#e2e8f0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#0a0f1a;border:1px solid #1e2d42;border-radius:16px;padding:40px;max-width:440px;width:100%;text-align:center}
+.logo{font-size:52px;font-weight:900;background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;letter-spacing:4px;display:block}
+h1{font-size:22px;font-weight:700;color:#f1f5f9;margin-bottom:8px}
+.sub{color:#6b8aad;font-size:13px;margin-bottom:28px;line-height:1.6}
+input{width:100%;background:#0d1117;border:1px solid #1e2d42;border-radius:8px;color:#e2e8f0;padding:12px 16px;font-size:13px;outline:none;margin-bottom:12px;transition:border-color .2s}
+input:focus{border-color:#6366f1}
+button{width:100%;background:linear-gradient(135deg,#6366f1,#7c3aed);color:#fff;border:none;border-radius:8px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px}
+button:disabled{opacity:.6;cursor:not-allowed}
+.note{font-size:11px;color:#334155;line-height:1.5}
+.note a{color:#818cf8;text-decoration:none}
+.status{padding:10px 14px;border-radius:7px;font-size:12px;margin-bottom:14px;display:none;text-align:left;line-height:1.5}
+.err{background:#ef444412;border:1px solid #ef444430;color:#ef4444}
+.ok{background:#10b98112;border:1px solid #10b98130;color:#10b981}
+</style>
+</head>
+<body>
+<div class="card">
+  <span class="logo">N</span>
+  <h1>NOVA AI Studio</h1>
+  <p class="sub">Your autonomous AI project assistant.<br/>Enter your Anthropic API key to get started — stored locally, never shared.</p>
+  <div class="status" id="st"></div>
+  <input type="password" id="k" placeholder="sk-ant-api03-… (Anthropic API key)" autocomplete="off"/>
+  <button id="btn" onclick="go()">⚡ Launch NOVA</button>
+  <p class="note">Key stored only in your browser.<br/>
+  Get a key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
+</div>
+<script>
+const saved = localStorage.getItem('nova_key');
+if(saved) document.getElementById('k').value = saved;
+
+async function go(){
+  const k = document.getElementById('k').value.trim();
+  const btn = document.getElementById('btn');
+  if(!k){ show('Please enter your Anthropic API key','err'); return; }
+  btn.textContent='⚙️ Verifying…'; btn.disabled=true;
+  show('Checking API key…','ok');
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:5,messages:[{role:'user',content:'hi'}]})
+    });
+    const d = await r.json();
+    if(d.content){
+      localStorage.setItem('nova_key',k);
+      show('✅ Verified! NOVA loading…','ok');
+      setTimeout(()=>{
+        document.body.innerHTML = `
+        <div style="font-family:Inter,system-ui,sans-serif;background:#0d1117;min-height:100vh;display:flex;align-items:center;justify-content:center;color:#e2e8f0;">
+          <div style="text-align:center">
+            <div style="font-size:48px;font-weight:900;background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:16px">N</div>
+            <h2 style="font-size:20px;font-weight:700;color:#f1f5f9;margin-bottom:8px">NOVA AI Studio</h2>
+            <p style="color:#10b981;font-size:14px;margin-bottom:4px">✅ Connected & Ready</p>
+            <p style="color:#6b8aad;font-size:12px">Full dashboard coming in next update</p>
+          </div>
+        </div>`;
+      },1200);
+    } else {
+      show('Invalid key — '+(d.error?.message||'check and retry'),'err');
+      btn.textContent='⚡ Launch NOVA'; btn.disabled=false;
+    }
+  } catch(e){
+    show('Error: '+e.message,'err');
+    btn.textContent='⚡ Launch NOVA'; btn.disabled=false;
+  }
+}
+
+function show(msg,cls){
+  const el=document.getElementById('st');
+  el.textContent=msg; el.className='status '+cls; el.style.display='block';
+}
+
+document.getElementById('k').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
+</script>
+</body>
+</html>
